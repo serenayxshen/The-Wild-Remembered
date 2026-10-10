@@ -1,0 +1,855 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>The Wild Remembers</title>
+<style>
+  :root{
+    --bg:#1a1f1b;
+    --panel:#111613cc;
+    --panel2:#1b231fcc;
+    --text:#d8e2d3;
+    --muted:#99aa95;
+    --accent:#7aa68a;
+    --warn:#c8a664;
+    --danger:#b96a6a;
+    --blue:#7fb8d8;
+  }
+  *{box-sizing:border-box}
+  html,body{
+    margin:0;
+    width:100%;
+    height:100%;
+    overflow:hidden;
+    background:#101310;
+    color:var(--text);
+    font-family:Verdana, Geneva, Tahoma, sans-serif;
+    image-rendering:pixelated;
+    touch-action:none;
+  }
+  #gameWrap{
+    position:fixed;
+    inset:0;
+    background:
+      radial-gradient(circle at 20% 20%, #263228 0%, #171d19 45%, #0f1310 100%);
+  }
+  canvas{
+    display:block;
+    width:100%;
+    height:100%;
+  }
+  .ui{
+    position:fixed;
+    inset:0;
+    pointer-events:none;
+  }
+  .topbar{
+    position:absolute;
+    top:10px;
+    left:10px;
+    right:10px;
+    display:flex;
+    gap:10px;
+    justify-content:space-between;
+    align-items:flex-start;
+  }
+  .panel{
+    background:var(--panel);
+    border:2px solid #3b493e;
+    border-radius:10px;
+    box-shadow:0 0 0 2px #0d100e inset, 0 8px 20px #0008;
+    padding:8px;
+    pointer-events:auto;
+    backdrop-filter:blur(2px);
+  }
+  .stats{
+    width:min(420px,65vw);
+  }
+  .title{
+    font-size:14px;
+    letter-spacing:1px;
+    color:#dfe9d8;
+    margin-bottom:6px;
+    text-transform:uppercase;
+  }
+  .bar{
+    margin:6px 0;
+  }
+  .barlabel{
+    display:flex;
+    justify-content:space-between;
+    font-size:12px;
+    color:var(--muted);
+    margin-bottom:2px;
+  }
+  .barbg{
+    height:14px;
+    background:#243026;
+    border:1px solid #4a5a4e;
+    border-radius:8px;
+    overflow:hidden;
+  }
+  .fill{
+    height:100%;
+    transition:width .2s linear;
+  }
+  .health{background:linear-gradient(90deg,#8f3f45,#d06b72)}
+  .stamina{background:linear-gradient(90deg,#466a55,#7ab58e)}
+  .hunger{background:linear-gradient(90deg,#8f7a47,#d9c170)}
+  .smallText{
+    font-size:12px;
+    line-height:1.35;
+    color:#b6c4b4;
+  }
+  .rightPanels{
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+    width:min(370px,42vw);
+  }
+  .packList{
+    max-height:180px;
+    overflow:auto;
+  }
+  .wolfRow{
+    display:grid;
+    grid-template-columns:1fr auto;
+    gap:8px;
+    align-items:center;
+    font-size:12px;
+    padding:4px 0;
+    border-bottom:1px solid #2a352d;
+  }
+  .wolfRow:last-child{border-bottom:none}
+  .wolfMood{color:#9fb2a7}
+  .bottomBar{
+    position:absolute;
+    left:10px;
+    right:10px;
+    bottom:10px;
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-end;
+    gap:10px;
+  }
+  .controlsPanel{
+    max-width:min(720px,100%);
+  }
+  .btns{
+    display:flex;
+    flex-wrap:wrap;
+    gap:6px;
+    margin-top:6px;
+  }
+  button{
+    pointer-events:auto;
+    background:#243027;
+    color:#dce7d9;
+    border:2px solid #4e6353;
+    border-radius:8px;
+    padding:8px 10px;
+    font-size:12px;
+    cursor:pointer;
+    min-height:38px;
+  }
+  button:hover{background:#304035}
+  button:active{transform:translateY(1px)}
+  .activeBtn{
+    background:#4c6757;
+    border-color:#98b09f;
+  }
+  .logPanel{
+    width:min(420px,45vw);
+  }
+  #log{
+    font-size:12px;
+    color:#c6d2c4;
+    max-height:140px;
+    overflow:auto;
+    line-height:1.35;
+  }
+  .logLine{margin:2px 0}
+  .centerOverlay{
+    position:absolute;
+    inset:0;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    background:#0b0f0ccc;
+    pointer-events:auto;
+  }
+  .menu{
+    width:min(560px,92vw);
+    background:linear-gradient(180deg,#182019,#101612);
+    border:2px solid #4a5a4d;
+    border-radius:14px;
+    padding:16px;
+    box-shadow:0 20px 50px #000a;
+  }
+  .menu h1{
+    margin:0 0 8px;
+    font-size:28px;
+    color:#e4efe1;
+    letter-spacing:1px;
+  }
+  .menu p{
+    color:#b4c3b1;
+    font-size:14px;
+    line-height:1.45;
+  }
+  .menuGrid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:8px;
+    margin-top:10px;
+  }
+  .hint{
+    position:absolute;
+    left:50%;
+    transform:translateX(-50%);
+    top:10px;
+    background:#0f1611cc;
+    border:1px solid #425147;
+    color:#d9e7d8;
+    font-size:12px;
+    padding:6px 10px;
+    border-radius:20px;
+    pointer-events:none;
+    opacity:0;
+    transition:opacity .25s;
+  }
+  .showHint{opacity:1}
+  #mobilePad{
+    position:absolute;
+    left:10px;
+    bottom:90px;
+    width:140px;
+    height:140px;
+    pointer-events:auto;
+    display:none;
+  }
+  .padBase{
+    position:absolute;
+    inset:0;
+    border-radius:50%;
+    background:#182119aa;
+    border:2px solid #4b5b4e;
+  }
+  .padKnob{
+    position:absolute;
+    width:56px;
+    height:56px;
+    left:42px;
+    top:42px;
+    border-radius:50%;
+    background:#607a69dd;
+    border:2px solid #b9ccb8;
+  }
+  #mobileActions{
+    position:absolute;
+    right:10px;
+    bottom:90px;
+    display:none;
+    gap:8px;
+    flex-direction:column;
+    pointer-events:auto;
+  }
+  .actionBig{
+    width:74px;
+    height:50px;
+    font-size:12px;
+    border-radius:12px;
+  }
+  @media (max-width: 900px){
+    .topbar{flex-direction:column; align-items:stretch}
+    .rightPanels,.stats,.logPanel{width:auto; max-width:none}
+    .bottomBar{flex-direction:column; align-items:stretch}
+    #mobilePad,#mobileActions{display:block}
+    .controlsPanel{padding-bottom:54px}
+  }
+</style>
+</head>
+<body>
+<div id="gameWrap">
+  <canvas id="game"></canvas>
+  <div class="ui">
+    <div class="hint" id="hint">Track the wild. Protect the pack.</div>
+
+    <div class="topbar">
+      <div class="panel stats">
+        <div class="title">Smoke</div>
+        <div class="bar">
+          <div class="barlabel"><span>Health</span><span id="healthText">100</span></div>
+          <div class="barbg"><div class="fill health" id="healthFill" style="width:100%"></div></div>
+        </div>
+        <div class="bar">
+          <div class="barlabel"><span>Stamina</span><span id="staminaText">100</span></div>
+          <div class="barbg"><div class="fill stamina" id="staminaFill" style="width:100%"></div></div>
+        </div>
+        <div class="bar">
+          <div class="barlabel"><span>Hunger</span><span id="hungerText">0</span></div>
+          <div class="barbg"><div class="fill hunger" id="hungerFill" style="width:0%"></div></div>
+        </div>
+        <div class="smallText" id="statusText">Young black wolf. Blue-eyed. Learning the shape of survival.</div>
+      </div>
+
+      <div class="rightPanels">
+        <div class="panel">
+          <div class="title">Pack</div>
+          <div class="packList" id="packList"></div>
+        </div>
+        <div class="panel">
+          <div class="title">World</div>
+          <div class="smallText" id="worldText">Forest edge. The river remembers every hoofprint.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="bottomBar">
+      <div class="panel controlsPanel">
+        <div class="title">Commands</div>
+        <div class="smallText">Move with WASD or touch stick. Shift to run. E interact/attack. R rest. 1 Follow 2 Hunt 3 Flank 4 Intercept 5 Regroup 6 Hold.</div>
+        <div class="btns">
+          <button data-cmd="follow">Follow</button>
+          <button data-cmd="hunt">Hunt</button>
+          <button data-cmd="flank">Flank</button>
+          <button data-cmd="intercept">Intercept</button>
+          <button data-cmd="regroup">Regroup</button>
+          <button data-cmd="hold">Hold</button>
+          <button id="pauseBtn">Pause</button>
+          <button id="saveBtn">Save</button>
+          <button id="loadBtn">Load</button>
+          <button id="newBtn">New Adventure</button>
+        </div>
+      </div>
+      <div class="panel logPanel">
+        <div class="title">Memory</div>
+        <div id="log"></div>
+      </div>
+    </div>
+
+    <div id="mobilePad">
+      <div class="padBase"></div>
+      <div class="padKnob" id="padKnob"></div>
+    </div>
+    <div id="mobileActions">
+      <button class="actionBig" id="mobileRun">RUN</button>
+      <button class="actionBig" id="mobileAct">ACT</button>
+      <button class="actionBig" id="mobileRest">REST</button>
+    </div>
+
+    <div class="centerOverlay" id="menuOverlay">
+      <div class="menu">
+        <h1>The Wild Remembers</h1>
+        <p>Smoke is young, hungry, and responsible for more than himself. Lead your six-wolf pack across a living wilderness of forest and river valley. Hunt, rest, recover, and decide who to trust.</p>
+        <p>Every animal moves through its own life. Prey flee and learn. Wolves remember rescue, failure, shared food, and ignored warnings. Trust changes the way your pack answers you.</p>
+        <div class="menuGrid">
+          <button id="startBtn">Begin Adventure</button>
+          <button id="continueBtn">Load Save</button>
+          <button id="menuSaveBtn">Save Game</button>
+          <button id="closeMenuBtn">Close Menu</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+
+function resizeCanvas(){
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  canvas.width = Math.floor(window.innerWidth * dpr);
+  canvas.height = Math.floor(window.innerHeight * dpr);
+  canvas.style.width = window.innerWidth + 'px';
+  canvas.style.height = window.innerHeight + 'px';
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+}
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
+
+const TILE = 24;
+const WORLD_W = 80;
+const WORLD_H = 40;
+const REGION_SPLIT = 40;
+const MAX_PACK = 6;
+
+const terrainInfo = {
+  grass:{color:'#617a57', block:false, slow:1, scent:1},
+  dirt:{color:'#7b6d50', block:false, slow:1, scent:1.1},
+  mud:{color:'#65563f', block:false, slow:0.62, scent:1.3},
+  shallow:{color:'#587783', block:false, slow:0.58, scent:0.5},
+  deep:{color:'#35515c', block:true, slow:0, scent:0.2},
+  tree:{color:'#2c4a30', block:true, slow:0, scent:1.4},
+  rock:{color:'#6a706d', block:true, slow:0, scent:0.8},
+  herb:{color:'#8aa96e', block:false, slow:1, scent:1.2}
+};
+
+function mulberry32(a){
+  return function(){
+    let t = a += 0x6D2B79F5;
+    t = Math.imul(t ^ t >>> 15, t | 1);
+    t ^= t + Math.imul(t ^ t >>> 7, t | 61);
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  }
+}
+
+let rng = mulberry32(Date.now() & 0xffffffff);
+
+function clamp(v,min,max){ return Math.max(min, Math.min(max, v)); }
+function dist(ax,ay,bx,by){ return Math.hypot(ax-bx, ay-by); }
+function lerp(a,b,t){ return a + (b-a)*t; }
+function choose(arr){ return arr[Math.floor(rng()*arr.length)]; }
+
+function noise2(x,y,seed){
+  const n = Math.sin((x*127.1 + y*311.7 + seed*74.7)) * 43758.5453123;
+  return n - Math.floor(n);
+}
+
+function smoothNoise(x,y,seed){
+  const x0 = Math.floor(x), y0 = Math.floor(y);
+  const xf = x - x0, yf = y - y0;
+  const n00 = noise2(x0,y0,seed), n10 = noise2(x0+1,y0,seed);
+  const n01 = noise2(x0,y0+1,seed), n11 = noise2(x0+1,y0+1,seed);
+  const u = xf*xf*(3-2*xf), v = yf*yf*(3-2*yf);
+  return lerp(lerp(n00,n10,u), lerp(n01,n11,u), v);
+}
+
+function fbm(x,y,seed){
+  let val=0, amp=.5, freq=1;
+  for(let i=0;i<4;i++){
+    val += smoothNoise(x*freq,y*freq,seed+i*13.3)*amp;
+    amp*=0.5;
+    freq*=2;
+  }
+  return val;
+}
+
+let world = [];
+let herbs = [];
+
+function generateWorld(seed){
+  rng = mulberry32(seed);
+  world = [];
+  herbs = [];
+  for(let y=0;y<WORLD_H;y++){
+    const row = [];
+    for(let x=0;x<WORLD_W;x++){
+      let n = fbm(x/10,y/10,seed*0.01);
+      let m = fbm(x/6+20,y/6-12,seed*0.03);
+      let type = 'grass';
+
+      if(x < REGION_SPLIT){
+        if(n < 0.24) type = 'dirt';
+        if(m > 0.7 && n > 0.38) type = 'tree';
+        if(m < 0.17 && n > 0.36) type = 'rock';
+        if(n > 0.57 && m > 0.54) type = 'tree';
+        if(n > 0.47 && n < 0.52 && m < 0.42) type = 'mud';
+      } else {
+        const riverCenter = 20 + Math.sin((x-REGION_SPLIT)/7)*4 + Math.sin((x-REGION_SPLIT)/3)*1.4;
+        const d = Math.abs(y - riverCenter);
+        if(d < 1.6) type = 'deep';
+        else if(d < 3.2) type = 'shallow';
+        else if(d < 5 && m < 0.6) type = 'mud';
+        else if(m > 0.73 && n > 0.32) type = 'tree';
+        else if(m < 0.16) type = 'rock';
+        else if(n < 0.22) type = 'dirt';
+      }
+
+      if((x === REGION_SPLIT || x === REGION_SPLIT-1) && y > 15 && y < 25){
+        type = y === 20 ? 'dirt' : (Math.abs(y-20) < 3 ? 'grass' : type);
+      }
+
+      if(type === 'grass' && rng() < 0.035){
+        herbs.push({x:x+0.5,y:y+0.5,used:false});
+        if(rng()<0.5) type='herb';
+      }
+
+      row.push(type);
+    }
+    world.push(row);
+  }
+
+  for(let y=0;y<WORLD_H;y++){
+    for(let x=0;x<WORLD_W;x++){
+      if(x===0||y===0||x===WORLD_W-1||y===WORLD_H-1){
+        if(world[y][x] !== 'deep') world[y][x] = 'rock';
+      }
+    }
+  }
+}
+
+function getTile(tx,ty){
+  tx = Math.floor(tx); ty = Math.floor(ty);
+  if(tx<0||ty<0||tx>=WORLD_W||ty>=WORLD_H) return 'rock';
+  return world[ty][tx];
+}
+function isBlocked(x,y){
+  return terrainInfo[getTile(x,y)].block;
+}
+function moveFactor(x,y){
+  return terrainInfo[getTile(x,y)].slow;
+}
+
+const packDefs = [
+  {name:'Smoke', role:'inexperienced', color:'#15171b', eyes:'#7cb8ff', trust:1},
+  {name:'Echo', role:'loyal', color:'#505556', eyes:'#b7d5d9', trust:.74},
+  {name:'Boulder', role:'experienced', color:'#76736b', eyes:'#d8caa8', trust:.62},
+  {name:'Dash', role:'impulsive', color:'#6a584b', eyes:'#f0c77d', trust:.56},
+  {name:'Whisper', role:'observant', color:'#8a8d92', eyes:'#d2efff', trust:.58},
+  {name:'Frost', role:'distrustful', color:'#d9dde1', eyes:'#b8d4f5', trust:.32}
+];
+
+let state = {
+  seed: Date.now() % 9999999,
+  time: 0,
+  paused: true,
+  gameOver: false,
+  command: 'follow',
+  regionName: 'Forest',
+  player: null,
+  pack: [],
+  animals: [],
+  particles: [],
+  camera:{x:0,y:0},
+  log:[]
+};
+
+function createWolf(def, x, y, leader=false){
+  return {
+    kind:'wolf',
+    name:def.name,
+    role:def.role,
+    x,y,vx:0,vy:0,
+    dirX:1,dirY:0,
+    speed: leader ? 2.15 : 1.9,
+    runSpeed: leader ? 3.3 : 2.8,
+    radius:0.35,
+    health:100,
+    stamina:100,
+    hunger: leader ? 6 : 4 + rng()*8,
+    trust:def.trust,
+    memories:[],
+    injury:0,
+    target:null,
+    leader,
+    obeyCooldown:0,
+    questionCooldown:0,
+    state:'follow',
+    resting:false,
+    carryingFood:0,
+    alive:true
+  };
+}
+
+function addLog(text){
+  state.log.unshift(text);
+  if(state.log.length > 16) state.log.length = 16;
+  renderLog();
+}
+
+function initGame(seed=Date.now()%9999999){
+  state.seed = seed;
+  generateWorld(seed);
+  state.time = 0;
+  state.paused = false;
+  state.gameOver = false;
+  state.command = 'follow';
+  state.log = [];
+
+  state.player = createWolf(packDefs[0], 6.5, 20.5, true);
+  state.pack = [
+    state.player,
+    createWolf(packDefs[1], 5.8, 21.4),
+    createWolf(packDefs[2], 5.2, 19.7),
+    createWolf(packDefs[3], 6.2, 18.9),
+    createWolf(packDefs[4], 4.7, 20.8),
+    createWolf(packDefs[5], 4.9, 22.1)
+  ];
+  state.animals = [];
+  state.particles = [];
+  spawnEcosystem();
+  addLog('The pack enters the forest. Smoke leads, uncertain but watched.');
+  addLog('Echo stays close. Frost says nothing.');
+  updatePackUI();
+  hideMenu();
+  showHint('Track the wild. Protect the pack.');
+}
+
+function spawnAnimal(species, x, y){
+  const defs = {
+    rabbit:{color:'#c8bcae', speed:1.7, run:2.7, hp:20, size:0.22, prey:true, fear:1.2, herd:false, food:16, breed:420},
+    deer:{color:'#9a7a5d', speed:1.8, run:3.1, hp:48, size:0.38, prey:true, fear:1.0, herd:true, food:34, breed:780},
+    boar:{color:'#5b4941', speed:1.45, run:2.4, hp:70, size:0.4, prey:false, fear:0.6, herd:false, food:42, breed:950},
+    fox:{color:'#b97142', speed:1.75, run:2.9, hp:26, size:0.28, prey:false, fear:0.8, herd:false, food:20, breed:700}
+  };
+  const d = defs[species];
+  state.animals.push({
+    kind:'animal',
+    species,
+    x,y,vx:0,vy:0,
+    dirX:1,dirY:0,
+    speed:d.speed,
+    runSpeed:d.run,
+    radius:d.size,
+    hp:d.hp,
+    maxHp:d.hp,
+    prey:d.prey,
+    fear:d.fear,
+    herd:d.herd,
+    food:d.food,
+    hunger:rng()*40,
+    stamina:60+rng()*40,
+    state:'wander',
+    memory:[],
+    routeTimer:0,
+    panic:0,
+    breedTimer: d.breed * (0.4 + rng()*0.9),
+    age:0,
+    alive:true,
+    color:d.color,
+    target:null,
+    lie:rng()<0.07,
+    social:rng()*1.2
+  });
+}
+
+function randomWalkable(region='any'){
+  for(let i=0;i<500;i++){
+    let x = region==='forest' ? rng()*38+1 : region==='river' ? rng()*38+41 : rng()*(WORLD_W-2)+1;
+    let y = rng()*(WORLD_H-2)+1;
+    if(!isBlocked(x,y) && getTile(x,y)!=='deep') return {x,y};
+  }
+  return {x:4,y:4};
+}
+
+function spawnEcosystem(){
+  for(let i=0;i<28;i++){
+    const p = randomWalkable('forest');
+    spawnAnimal(rng()<0.65 ? 'rabbit' : 'deer', p.x, p.y);
+  }
+  for(let i=0;i<18;i++){
+    const p = randomWalkable('river');
+    spawnAnimal(rng()<0.55 ? 'deer' : 'rabbit', p.x, p.y);
+  }
+  for(let i=0;i<8;i++){
+    const p = randomWalkable(rng()<0.5?'forest':'river');
+    spawnAnimal('boar', p.x, p.y);
+  }
+  for(let i=0;i<7;i++){
+    const p = randomWalkable(rng()<0.6?'forest':'river');
+    spawnAnimal('fox', p.x, p.y);
+  }
+}
+
+const keys = {};
+window.addEventListener('keydown', e=>{
+  keys[e.key.toLowerCase()] = true;
+  if(['1','2','3','4','5','6'].includes(e.key)){
+    const cmds = {1:'follow',2:'hunt',3:'flank',4:'intercept',5:'regroup',6:'hold'};
+    setCommand(cmds[e.key]);
+  }
+  if(e.key.toLowerCase()==='p' || e.key==='Escape') togglePause();
+  if(e.key.toLowerCase()==='r') tryRest();
+  if(e.key.toLowerCase()==='e') interactAttack();
+});
+window.addEventListener('keyup', e=> keys[e.key.toLowerCase()] = false);
+
+let touchMove = {active:false, x:0, y:0};
+let touchRun = false;
+
+const mobilePad = document.getElementById('mobilePad');
+const padKnob = document.getElementById('padKnob');
+function updatePadKnob(){
+  padKnob.style.left = (42 + touchMove.x*30) + 'px';
+  padKnob.style.top = (42 + touchMove.y*30) + 'px';
+}
+function padPoint(ev){
+  const r = mobilePad.getBoundingClientRect();
+  const cx = r.left + r.width/2;
+  const cy = r.top + r.height/2;
+  let dx = (ev.clientX - cx)/(r.width/2);
+  let dy = (ev.clientY - cy)/(r.height/2);
+  const mag = Math.hypot(dx,dy) || 1;
+  if(mag>1){ dx/=mag; dy/=mag; }
+  touchMove.x = dx; touchMove.y = dy; touchMove.active = true;
+  updatePadKnob();
+}
+mobilePad.addEventListener('pointerdown', e=>{ padPoint(e); mobilePad.setPointerCapture(e.pointerId); });
+mobilePad.addEventListener('pointermove', e=>{ if(touchMove.active) padPoint(e); });
+mobilePad.addEventListener('pointerup', ()=>{ touchMove.active=false; touchMove.x=0; touchMove.y=0; updatePadKnob(); });
+mobilePad.addEventListener('pointercancel', ()=>{ touchMove.active=false; touchMove.x=0; touchMove.y=0; updatePadKnob(); });
+
+document.getElementById('mobileRun').addEventListener('pointerdown', ()=> touchRun=true);
+document.getElementById('mobileRun').addEventListener('pointerup', ()=> touchRun=false);
+document.getElementById('mobileRun').addEventListener('pointercancel', ()=> touchRun=false);
+document.getElementById('mobileAct').addEventListener('click', interactAttack);
+document.getElementById('mobileRest').addEventListener('click', tryRest);
+
+function tryMove(ent, dx, dy){
+  const nx = ent.x + dx;
+  const ny = ent.y + dy;
+  if(!isBlocked(nx, ent.y)) ent.x = nx;
+  else ent.vx *= -0.15;
+  if(!isBlocked(ent.x, ny)) ent.y = ny;
+  else ent.vy *= -0.15;
+  ent.x = clamp(ent.x, 1.05, WORLD_W-1.05);
+  ent.y = clamp(ent.y, 1.05, WORLD_H-1.05);
+}
+
+function nearestAnimal(x,y,range=2.2){
+  let best=null, bd=1e9;
+  for(const a of state.animals){
+    if(!a.alive) continue;
+    const d = dist(x,y,a.x,a.y);
+    if(d<range && d<bd){ bd=d; best=a; }
+  }
+  return best;
+}
+
+function nearestHerb(x,y,range=1.4){
+  let best=null, bd=1e9;
+  for(const h of herbs){
+    if(h.used) continue;
+    const d = dist(x,y,h.x,h.y);
+    if(d<range && d<bd){ bd=d; best=h; }
+  }
+  return best;
+}
+
+function interactAttack(){
+  if(state.paused || state.gameOver) return;
+  const p = state.player;
+  const herb = nearestHerb(p.x,p.y);
+  if(herb){
+    herb.used = true;
+    p.injury = Math.max(0, p.injury - 10);
+    p.health = clamp(p.health + 6, 0, 100);
+    addLog('Smoke chews bitter herbs. The ache softens.');
+    for(const w of state.pack){ if(w!==p && dist(w.x,w.y,p.x,p.y)<4) w.trust = clamp(w.trust + 0.01, 0, 1); }
+    return;
+  }
+  const target = nearestAnimal(p.x,p.y);
+  if(target){
+    attackEntity(p, target);
+    for(const w of state.pack.slice(1)){
+      if(dist(w.x,w.y,p.x,p.y)<8 && w.stamina>10 && w.alive){
+        if(state.command==='hunt' || state.command==='flank' || state.command==='intercept'){
+          attackEntity(w,target,true);
+        }
+      }
+    }
+  }
+}
+
+function attackEntity(wolf, animal, ally=false){
+  if(!animal.alive || wolf.stamina<5) return;
+  wolf.stamina = clamp(wolf.stamina - 8, 0, 100);
+  const dmg = 7 + rng()*8 - wolf.injury*0.06 + (ally?1:2);
+  animal.hp -= dmg;
+  animal.panic += 30;
+  animal.state = 'flee';
+  animal.target = wolf;
+  state.particles.push({x:animal.x,y:animal.y,t:20,color:'#b15f5f'});
+  if(animal.species==='boar' && rng()<0.45){
+    wolf.health -= 4 + rng()*7;
+    wolf.injury += 5 + rng()*8;
+    addLog(animal.species.charAt(0).toUpperCase()+animal.species.slice(1)+' fights back.');
+  }
+  if(animal.hp <= 0){
+    animal.alive = false;
+    wolf.carryingFood += animal.food;
+    addLog((ally?wolf.name+' joins Smoke. ':'Smoke strikes true. ') + animal.species+' falls.');
+    shareFood(animal.food);
+    rememberEvent('sharedFood', 0.03);
+  }
+}
+
+function shareFood(food){
+  const p = state.player;
+  p.hunger = clamp(p.hunger - food*0.7, 0, 100);
+  p.health = clamp(p.health + 4, 0, 100);
+  for(const w of state.pack.slice(1)){
+    if(dist(w.x,w.y,p.x,p.y)<6){
+      w.hunger = clamp(w.hunger - food*0.38, 0, 100);
+      w.health = clamp(w.health + 2, 0, 100);
+      w.trust = clamp(w.trust + 0.02, 0, 1);
+    }
+  }
+  addLog('The pack feeds. Warmth returns to tired limbs.');
+}
+
+function setCommand(cmd){
+  state.command = cmd;
+  updateCommandButtons();
+  const words = {
+    follow:'Smoke calls the pack close.',
+    hunt:'Smoke sends the pack to hunt.',
+    flank:'Smoke orders a flanking move.',
+    intercept:'Smoke signals an interception line.',
+    regroup:'Smoke calls everyone back.',
+    hold:'Smoke tells the pack to hold position.'
+  };
+  addLog(words[cmd]);
+  for(const w of state.pack.slice(1)){
+    if(!w.alive) continue;
+    const obedience = w.trust*0.55 + (w.stamina/100)*0.2 + (1-w.hunger/100)*0.15 + (w.role==='experienced'?0.08:0) + (cmd==='regroup'?0.1:0) - (w.role==='distrustful'?0.06:0);
+    if(obedience < 0.35 && rng() < 0.5){
+      if(w.questionCooldown<=0){
+        addLog(w.name+' questions the order.');
+        w.trust = clamp(w.trust - 0.01, 0, 1);
+        w.questionCooldown = 8;
+      }
+    }else{
+      w.state = cmd;
+      w.obeyCooldown = 5 + rng()*2;
+    }
+  }
+}
+
+function tryRest(){
+  const p = state.player;
+  const nearThreat = state.animals.some(a=>a.alive && dist(a.x,a.y,p.x,p.y)<5 && !a.prey);
+  if(nearThreat){
+    addLog('Smoke cannot rest with danger so near.');
+    return;
+  }
+  p.resting = !p.resting;
+  addLog(p.resting ? 'Smoke lowers into the grass to rest.' : 'Smoke rises again.');
+}
+
+function rememberEvent(type, trustDelta){
+  for(const w of state.pack.slice(1)){
+    if(!w.alive) continue;
+    w.memories.push({type,time:state.time});
+    if(w.memories.length>8) w.memories.shift();
+    w.trust = clamp(w.trust + trustDelta*(0.7+rng()*0.6), 0, 1);
+  }
+}
+
+function updatePlayer(dt){
+  const p = state.player;
+  let mx = 0, my = 0;
+  if(keys['w']||keys['arrowup']) my -= 1;
+  if(keys['s']||keys['arrowdown']) my += 1;
+  if(keys['a']||keys['arrowleft']) mx -= 1;
+  if(keys['d']||keys['arrowright']) mx += 1;
+  if(touchMove.active){ mx += touchMove.x; my += touchMove.y; }
+
+  const mag = Math.hypot(mx,my);
+  const moving = mag > 0.05;
+  const running = (keys['shift'] || touchRun) && p.stamina > 8 && moving && !p.resting;
+  const speed = (running ? p.runSpeed : p.speed) * moveFactor(p.x,p.y) * (1 - p.injury*0.003) * (1 - Math.max(0,p.hunger-60)*0.004);
+
+  if(p.resting && moving) p.resting = false;
+
+  if(moving && !p.resting){
+    mx /= mag; my /= mag;
+    p.dirX = mx; p.dirY = my;
+    p.vx = mx * speed;
+    p.vy = my * speed;
+    tryMove(p, p.vx*dt, p.vy*dt);
+    if(running) p.stamina = clamp(p.stamina - 15*dt, 0, 100);
+    else p.stamina
